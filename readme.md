@@ -3,6 +3,7 @@
 Generate json results for [benchmark.js](https://github.com/bestiejs/benchmark.js).
 
 [![NPM](https://img.shields.io/npm/v/travis-benchmark.svg)](https://www.npmjs.com/package/travis-benchmark)
+[![Build Status](https://travis-ci.org/evolvator/travis-benchmark.svg?branch=master)](https://travis-ci.org/evolvator/travis-benchmark)
 
 ## About
 
