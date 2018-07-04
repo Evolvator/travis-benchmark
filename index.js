@@ -6,32 +6,9 @@ var jsonfile = require('jsonfile');
 var _ = require('lodash');
 var async = require('async');
 
-const isNode = platform.name === 'Node.js';
-
-if (isNode) {
-  var simpleGit = require('simple-git');
-  var tmp = require('tmp');
-}
+var tjgl = require('travis-json-git-log');
 
 exports.defaultConfig = {
-  branch:
-    process && process.env && process.env.RESULTS_BRANCH
-      ? process.env.RESULTS_BRANCH
-      : 'results',
-  repo_slug:
-  process && process.env ? process.env.RESULTS_REPO_SLUG || process.env.TRAVIS_REPO_SLUG : undefined,
-  repo:
-    process && process.env && process.env.RESULTS_REPO
-      ? process.env.RESULTS_REPO
-      : undefined,
-  auth:
-    process && process.env && process.env.RESULTS_AUTH
-      ? process.env.RESULTS_AUTH
-      : undefined,
-  mute:
-    process && process.env && process.env.RESULTS_MUTE
-      ? process.env.RESULTS_MUTE
-      : undefined,
   build:
     process && process.env && process.env.TRAVIS_BUILD_ID
       ? process.env.TRAVIS_BUILD_ID
@@ -77,86 +54,18 @@ exports.parseSuite = function(event, config) {
   return results;
 };
 
-exports.saveSuite = function(suite, callback, config) {
-  config = _.defaults(config, exports.defaultConfig);
-  if (!config.repo)
-    config.repo = `https://${config.auth}@github.com/${config.repo_slug}.git`;
-
-  if (isNode && config.auth) {
-    tmp.dir({ unsafeCleanup: true }, function(error, path, clean) {
-      if (error) {
-        if (callback) return callback(error);
-      } else {
-        var git = simpleGit(path);
-        var _filepath;
-        async.series(
-          [
-            function(next) {
-              git.clone(config.repo, path, ['-b', config.branch], next);
-            },
-            function(next) {
-              fs.readdir(path, function(error, dir) {
-                if (error) return next(error);
-                var filename = `${config.build}.json`;
-                var filepath = `${path}/${filename}`;
-                _filepath = filepath;
-                if (_.includes(dir, filename)) {
-                  jsonfile.readFile(filepath, function(error, json) {
-                    json.push(...suite);
-                    jsonfile.writeFile(filepath, json, next);
-                  });
-                } else {
-                  jsonfile.writeFile(filepath, suite, next);
-                }
-              });
-            },
-            function(next) {
-              fs.unlink(`${path}/last.json`, () => {
-                fs.link(_filepath, `${path}/last.json`, next);
-              });
-            },
-            function(next) {
-              git.add('./*', next);
-            },
-            function(next) {
-              git.commit(
-                `results ${config.build}/${config.job}/${suite.name}`,
-                next
-              );
-            },
-            function(next) {
-              git.push('origin', config.branch, next);
-            },
-            function(next) {
-              clean();
-              if (!config.mute) console.log(suite);
-              next();
-            }
-          ],
-          error => {
-            if (callback) callback(error);
-          }
-        );
-      }
-    });
-  } else {
-    if (!config.mute) console.warn('travis-benchmark: auth is not defined');
-    if (!config.mute) console.log(suite);
-    if (callback) callback();
-  }
-};
-
 exports.wrapSuite = function(suite, callback, config) {
   suite.on('cycle', function(event) {
-    console.log(String(event.target));
+    console.log(String(event.target), event.target.error ? event.target.error.stack : '');
   });
   suite.on('complete', function(event) {
-    exports.saveSuite(
-      exports.parseSuite(event),
-      function(error) {
-        if (callback) callback(error);
-      },
-      config
+    console.log(`Suite ${event.currentTarget.name} completed.`);
+    var data = exports.parseSuite(event);
+    tjgl.tjgl(
+      _.extend({}, { data, filename: process && process.env && process.env.TRAVIS_BUILD_ID }, config),
+      function(error, context, config) {
+        if (callback) callback(error, context, config);
+      }
     );
   });
 };
