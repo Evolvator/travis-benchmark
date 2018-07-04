@@ -27,13 +27,14 @@ or
 ```js
 var Benchmark = require('benchmark');
 var tb = require('travis-benchmark');
+var tjgl = require('travis-json-git-log');
 
 var suite = new Benchmark.Suite('suiteName');
 suite.add('benchmarkName', function() {})
 .on('complete', function(event) {
   var data = exports.parseSuite(event);
   tjgl.tjgl(
-    _.extend({}, { data, filename: process && process.env && process.env.TRAVIS_BUILD_ID }, config),
+    _.extend({}, { data }, config),
     function(error, context, config) {}
   );
 })
