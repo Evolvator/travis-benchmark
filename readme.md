@@ -8,8 +8,8 @@ Generate json results for [benchmark.js](https://github.com/bestiejs/benchmark.j
 ## About
 
 - Dont work outside the travis environment.
-- Write results to `buildId.json` file of `process.env.TJGL_BRANCH` branch in current or `process.env.TJGL_REPO_SLUG` git repository. Create file if not exists. 
-- Config same as in [travis-json-git-log](https://github.com/evolvator/travis-json-git-log), but with `build` and `job` fields.
+- Write results into file `travisBuildId.json`.
+- Other config same as in [travis-json-git-log](https://github.com/evolvator/travis-json-git-log), but with `build` and `job` fields for additional benchmark info.
 
 ## Example
 
